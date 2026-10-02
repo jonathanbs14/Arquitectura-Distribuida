@@ -1,0 +1,53 @@
+# auth-service/src/main/resources/application.yml
+
+spring:
+  application:
+    name: auth-service
+
+  datasource:
+    url: jdbc:h2:mem:authdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+  h2:
+    console:
+      enabled: ${H2_CONSOLE_ENABLED:false}
+
+server:
+  port: 8083
+  servlet:
+    context-path: /auth
+  forward-headers-strategy: framework
+
+jwt:
+  secret: ${JWT_SECRET:}
+  expiration: 3600000
+  refresh-expiration: 86400000
+
+logging:
+  level:
+    root: INFO
+    com.prueba.graftsql: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus, health, info
+  endpoint:
+    prometheus:
+      enabled: true
+    health:
+      probes:
+        enabled: true
+      show-details: always
+  metrics:
+    tags:
+      application: auth-service

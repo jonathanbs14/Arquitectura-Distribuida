@@ -1,0 +1,7 @@
+rootProject.name = 'sistema-credito-distribuido'
+
+include 'contracts'
+include 'api-gateway'
+include 'solicitud-service'
+include 'evaluacion-service'
+include 'auth-service'

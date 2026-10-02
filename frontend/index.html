@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Cliente de pruebas del Sistema de Crédito Distribuido"
+    />
+    <title>Consola de pruebas | Sistema de Crédito</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero__content">
+        <p class="eyebrow">Sistema de Crédito Distribuido</p>
+        <h1>Consola de pruebas de endpoints</h1>
+        <p class="hero__description">
+          Ejecuta el flujo de crédito, consulta el procesamiento asíncrono y prueba la autenticación desde una sola interfaz.
+        </p>
+      </div>
+      <div class="hero__signal" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="connection-panel" aria-labelledby="connection-title">
+        <div>
+          <p class="eyebrow eyebrow--blue">Conexión</p>
+          <h2 id="connection-title">API Gateway</h2>
+          <p>El frontend usa este gateway para las peticiones de negocio y autenticación.</p>
+        </div>
+        <form id="gateway-form" class="gateway-form">
+          <label for="gateway-url">URL del gateway</label>
+          <div class="gateway-form__controls">
+            <input id="gateway-url" name="gatewayUrl" type="url" value="http://localhost:8080" required />
+            <button class="button button--primary" type="submit">Guardar y comprobar</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="section" aria-labelledby="health-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow eyebrow--blue">Diagnóstico</p>
+            <h2 id="health-title">Estado de los servicios</h2>
+          </div>
+          <button id="check-all-health" class="button button--secondary" type="button">Comprobar todo</button>
+        </div>
+        <div class="health-grid">
+          <article class="health-card">
+            <div><h3>API Gateway</h3><p>Puerto 8080</p></div>
+            <span id="health-gateway" class="status status--idle">Sin comprobar</span>
+            <button class="text-button" type="button" data-health="gateway">Comprobar</button>
+          </article>
+          <article class="health-card">
+            <div><h3>Solicitudes</h3><p>Puerto 8081</p></div>
+            <span id="health-solicitudes" class="status status--idle">Sin comprobar</span>
+            <button class="text-button" type="button" data-health="solicitudes">Comprobar</button>
+          </article>
+          <article class="health-card">
+            <div><h3>Evaluaciones</h3><p>Puerto 8082</p></div>
+            <span id="health-evaluaciones" class="status status--idle">Sin comprobar</span>
+            <button class="text-button" type="button" data-health="evaluaciones">Comprobar</button>
+          </article>
+          <article class="health-card">
+            <div><h3>Autenticación</h3><p>Puerto 8083</p></div>
+            <span id="health-auth" class="status status--idle">Sin comprobar</span>
+            <button class="text-button" type="button" data-health="auth">Comprobar</button>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="credit-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow eyebrow--blue">Flujo de crédito</p>
+            <h2 id="credit-title">Solicitudes y evaluaciones</h2>
+          </div>
+          <p class="section-heading__note">La evaluación llega por Kafka y puede tardar unos segundos.</p>
+        </div>
+        <div class="two-column">
+          <article class="form-panel">
+            <h3>Crear solicitud</h3>
+            <p>Envía <code>POST /solicitudes</code>.</p>
+            <form id="solicitud-form" class="form-stack">
+              <label for="monto">Monto solicitado</label>
+              <input id="monto" name="monto" type="number" min="0.01" step="0.01" value="12000" required />
+              <label for="plazo">Plazo en meses</label>
+              <input id="plazo" name="plazo" type="number" min="1" step="1" value="24" required />
+              <button class="button button--primary" type="submit">Crear solicitud</button>
+            </form>
+          </article>
+          <article class="form-panel form-panel--accent">
+            <h3>Consultar información</h3>
+            <p>Usa el UUID de la última solicitud creada o ingrésalo manualmente.</p>
+            <label for="solicitud-id">ID de solicitud</label>
+            <input id="solicitud-id" name="solicitudId" type="text" placeholder="UUID de la solicitud" />
+            <div class="button-row">
+              <button id="get-solicitud" class="button button--secondary" type="button">Consultar solicitud</button>
+              <button id="get-evaluacion" class="button button--secondary" type="button">Consultar evaluación</button>
+            </div>
+            <button id="poll-evaluacion" class="text-button text-button--accent" type="button">Esperar evaluación automáticamente</button>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="auth-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow eyebrow--blue">Identidad</p>
+            <h2 id="auth-title">Registro, login, MFA y OAuth</h2>
+          </div>
+          <span id="auth-state" class="status status--idle">Sin sesión</span>
+        </div>
+        <div class="auth-grid">
+          <article class="form-panel">
+            <h3>Crear cuenta local</h3>
+            <form id="register-form" class="form-stack">
+              <label for="register-name">Nombre completo</label>
+              <input id="register-name" name="fullName" type="text" autocomplete="name" required />
+              <label for="register-email">Correo electrónico</label>
+              <input id="register-email" name="email" type="email" autocomplete="email" required />
+              <label for="register-password">Contraseña</label>
+              <input id="register-password" name="password" type="password" autocomplete="new-password" required />
+              <button class="button button--primary" type="submit">Registrarme</button>
+            </form>
+          </article>
+          <article class="form-panel">
+            <h3>Iniciar sesión local</h3>
+            <form id="login-form" class="form-stack">
+              <label for="login-email">Correo electrónico</label>
+              <input id="login-email" name="email" type="email" autocomplete="email" required />
+              <label for="login-password">Contraseña</label>
+              <input id="login-password" name="password" type="password" autocomplete="current-password" required />
+              <label for="login-mfa">Código MFA, si aplica</label>
+              <input id="login-mfa" name="mfaCode" type="text" inputmode="numeric" pattern="[0-9]{6}" placeholder="123456" />
+              <button class="button button--primary" type="submit">Iniciar sesión</button>
+            </form>
+          </article>
+          <article class="form-panel form-panel--wide">
+            <h3>Segundo factor y proveedores externos</h3>
+            <p>La configuración MFA usa el ID de usuario recibido en el registro o login.</p>
+            <div class="inline-fields">
+              <div>
+                <label for="mfa-user-id">ID de usuario</label>
+                <input id="mfa-user-id" type="text" placeholder="ID de usuario" />
+              </div>
+              <div>
+                <label for="mfa-code">Código TOTP</label>
+                <input id="mfa-code" type="text" inputmode="numeric" pattern="[0-9]{6}" placeholder="123456" />
+              </div>
+            </div>
+            <div class="button-row">
+              <button id="mfa-setup" class="button button--secondary" type="button">Generar QR MFA</button>
+              <button id="mfa-verify" class="button button--secondary" type="button">Verificar código MFA</button>
+            </div>
+            <div id="mfa-qr-container" class="mfa-qr" hidden>
+              <img id="mfa-qr-image" alt="Código QR para configurar el segundo factor" />
+              <div><strong>Secreto TOTP</strong><code id="mfa-secret"></code></div>
+            </div>
+            <div class="oauth-actions">
+              <span>OAuth se completa en el navegador:</span>
+              <button id="oauth-google" class="button button--oauth" type="button">Continuar con Google</button>
+              <button id="oauth-github" class="button button--oauth" type="button">Continuar con GitHub</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="console-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow eyebrow--blue">Cobertura adicional</p>
+            <h2 id="console-title">Consola HTTP libre</h2>
+          </div>
+          <label class="checkbox-label" for="send-token"><input id="send-token" type="checkbox" checked /> Enviar JWT disponible</label>
+        </div>
+        <article class="console-panel">
+          <form id="raw-request-form" class="raw-request-form">
+            <label for="raw-method">Método</label>
+            <select id="raw-method"><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option></select>
+            <label for="raw-path">Ruta</label>
+            <input id="raw-path" type="text" value="/actuator/health" required />
+            <button class="button button--primary" type="submit">Enviar petición</button>
+            <label class="raw-body-label" for="raw-body">JSON opcional</label>
+            <textarea id="raw-body" rows="5" spellcheck="false" placeholder='{"monto":12000,"plazoMeses":24}'></textarea>
+          </form>
+        </article>
+      </section>
+
+      <section class="section result-section" aria-labelledby="result-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow eyebrow--blue">Respuesta</p>
+            <h2 id="result-title">Actividad de la consola</h2>
+          </div>
+          <button id="clear-result" class="text-button" type="button">Limpiar</button>
+        </div>
+        <pre id="result-output" class="result-output" aria-live="polite">Aún no hay peticiones ejecutadas.</pre>
+      </section>
+    </main>
+
+    <footer class="footer">Cliente de pruebas local. OAuth requiere registrar los callback URL en Google y GitHub.</footer>
+    <script src="./app.js" defer></script>
+  </body>
+</html>

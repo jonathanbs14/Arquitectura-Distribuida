@@ -1,0 +1,35 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: solicitud-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:solicitudes;MODE=PostgreSQL;DB_CLOSE_DELAY=-1}
+    username: ${SPRING_DATASOURCE_USERNAME:credit}
+    password: ${SPRING_DATASOURCE_PASSWORD:credit}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus, health, info
+  endpoint:
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: solicitud-service
+
+app:
+  outbox:
+    publish-delay-ms: ${OUTBOX_PUBLISH_DELAY_MS:1000}

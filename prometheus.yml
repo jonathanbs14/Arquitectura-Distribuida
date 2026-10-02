@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: 'api-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['api-gateway:8080']
+
+  - job_name: 'auth-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['auth-service:8083']
+
+  - job_name: 'evaluacion-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['evaluacion-service:8082']
+
+  - job_name: 'solicitud-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['solicitud-service:8081']

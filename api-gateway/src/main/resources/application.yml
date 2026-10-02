@@ -1,0 +1,77 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - ${FRONTEND_ALLOWED_ORIGIN:http://localhost:5173}
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+              - OPTIONS
+            allowedHeaders: '*'
+            exposedHeaders:
+              - Location
+            allowCredentials: true
+      routes:
+        - id: solicitudes
+          uri: ${SOLICITUD_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/solicitudes/**
+          filters:
+            - name: Retry
+              args:
+                retries: 3
+                methods: GET,POST
+                backoff:
+                  delay: 100
+                  maxDelay: 1000
+                  multiplier: 1.5
+        - id: evaluaciones
+          uri: ${EVALUACION_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/evaluaciones/**
+          filters:
+            - name: Retry
+              args:
+                retries: 3
+                methods: GET,POST
+                backoff:
+                  delay: 100
+                  maxDelay: 1000
+                  multiplier: 1.5
+        - id: autenticacion
+          uri: ${AUTH_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/auth/**
+          filters:
+            - name: Retry
+              args:
+                retries: 2
+                methods: GET,POST
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus, health, info
+  endpoint:
+    prometheus:
+      enabled: true
+    health:
+      probes:
+        enabled: true
+      show-details: always
+  metrics:
+    tags:
+      application: api-gateway

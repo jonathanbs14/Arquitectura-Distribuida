@@ -1,0 +1,177 @@
+name: sistema-credito-distribuido
+
+x-service-build: &service-build
+  context: .
+  dockerfile: docker/Dockerfile
+
+x-postgres-healthcheck: &postgres-healthcheck
+  test: ["CMD-SHELL", "pg_isready -U credit"]
+  interval: 5s
+  timeout: 5s
+  retries: 10
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "kafka-topics --bootstrap-server localhost:29092 --list"
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  solicitudes-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: solicitudes
+      POSTGRES_USER: credit
+      POSTGRES_PASSWORD: credit
+    healthcheck: *postgres-healthcheck
+
+  evaluaciones-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: evaluaciones
+      POSTGRES_USER: credit
+      POSTGRES_PASSWORD: credit
+    healthcheck: *postgres-healthcheck
+
+  solicitud-service:
+    build:
+      <<: *service-build
+      args:
+        SERVICE: solicitud-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://solicitudes-db:5432/solicitudes
+      SPRING_DATASOURCE_USERNAME: credit
+      SPRING_DATASOURCE_PASSWORD: credit
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      solicitudes-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+
+  evaluacion-service:
+    build:
+      <<: *service-build
+      args:
+        SERVICE: evaluacion-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://evaluaciones-db:5432/evaluaciones
+      SPRING_DATASOURCE_USERNAME: credit
+      SPRING_DATASOURCE_PASSWORD: credit
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+    depends_on:
+      evaluaciones-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+
+  auth-service:
+    build:
+      <<: *service-build
+      args:
+        SERVICE: auth-service
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET en el archivo .env}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+    ports:
+      - "8083:8083"
+
+  api-gateway:
+    build:
+      <<: *service-build
+      args:
+        SERVICE: api-gateway
+    environment:
+      SOLICITUD_SERVICE_URL: http://solicitud-service:8081
+      EVALUACION_SERVICE_URL: http://evaluacion-service:8082
+      AUTH_SERVICE_URL: http://auth-service:8083
+      FRONTEND_ALLOWED_ORIGIN: http://localhost:5173
+    depends_on:
+      - solicitud-service
+      - evaluacion-service
+      - auth-service
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - api-gateway
+    ports:
+      - "5173:80"
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
