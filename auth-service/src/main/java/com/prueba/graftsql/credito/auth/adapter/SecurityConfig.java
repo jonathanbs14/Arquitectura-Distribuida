@@ -45,7 +45,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers("/oauth/**", "/api/auth/**", "/register", "/login", "/mfa/**", "/oauth2/**", "/login/**",
-                                "/actuator/health/**", "/error")
+                                "/actuator/health/**", "/actuator/prometheus", "/error")
                         .permitAll()
                         .anyRequest().authenticated())
                 .oauth2Login(oauth -> oauth
